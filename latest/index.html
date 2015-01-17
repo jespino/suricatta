@@ -505,6 +505,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_transactions">4.6. Transactions</a></li>
 <li><a href="#_lazy_result_fetching">4.7. Lazy result fetching</a></li>
 <li><a href="#_async_interface">4.8. Async interface</a></li>
+<li><a href="#_custom_types">4.9. Custom types</a></li>
 </ul>
 </li>
 <li><a href="#_sql_building_and_formatting">5. SQL Building and Formatting</a>
@@ -517,26 +518,21 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_table_expressions">5.6. Table Expressions</a></li>
 </ul>
 </li>
-<li><a href="#_advanced_usage">6. Advanced usage</a>
+<li><a href="#_faq">6. FAQ</a>
 <ul class="sectlevel2">
-<li><a href="#_extending_with_custom_types">6.1. Extending with custom types</a></li>
+<li><a href="#_why_i_should_use_suricatta_instead_of_clojure_jdbc_or_java_jdbc">6.1. Why I should use suricatta instead of clojure.jdbc or java.jdbc?</a></li>
+<li><a href="#_why_an_other_dsl_is_yet_another">6.2. Why an other dsl? Is yet another?</a></li>
+<li><a href="#_that_use_cases_have_suricatta">6.3. That use cases have suricatta?</a></li>
+<li><a href="#_is_a_korma_clone">6.4. Is a korma-clone?</a></li>
+<li><a href="#_is_required_buy_jooq_comercial_license">6.5. Is required buy JOOQ comercial license?</a></li>
+<li><a href="#_can_i_store_safely_queries_builded_by_dsl_in_a_var_they_are_immutable">6.6. Can I store safely queries builded by DSL in a var, they are immutable?</a></li>
 </ul>
 </li>
-<li><a href="#_faq">7. FAQ</a>
+<li><a href="#_how_to_contribute">7. How to Contribute?</a>
 <ul class="sectlevel2">
-<li><a href="#_why_i_should_use_suricatta_instead_of_clojure_jdbc_or_java_jdbc">7.1. Why I should use suricatta instead of clojure.jdbc or java.jdbc?</a></li>
-<li><a href="#_why_an_other_dsl_is_yet_another">7.2. Why an other dsl? Is yet another?</a></li>
-<li><a href="#_that_use_cases_have_suricatta">7.3. That use cases have suricatta?</a></li>
-<li><a href="#_is_a_korma_clone">7.4. Is a korma-clone?</a></li>
-<li><a href="#_is_required_buy_jooq_comercial_license">7.5. Is required buy JOOQ comercial license?</a></li>
-<li><a href="#_can_i_store_safely_queries_builded_by_dsl_in_a_var_they_are_immutable">7.6. Can I store safely queries builded by DSL in a var, they are immutable?</a></li>
-</ul>
-</li>
-<li><a href="#_how_to_contribute">8. How to Contribute?</a>
-<ul class="sectlevel2">
-<li><a href="#_philosophy">8.1. Philosophy</a></li>
-<li><a href="#_procedure">8.2. Procedure</a></li>
-<li><a href="#_license">8.3. License</a></li>
+<li><a href="#_philosophy">7.1. Philosophy</a></li>
+<li><a href="#_procedure">7.2. Procedure</a></li>
+<li><a href="#_license">7.3. License</a></li>
 </ul>
 </li>
 </ul>
@@ -1021,6 +1017,67 @@ transducer:</p>
 <span class="tok-c1">;; That prints to stdout:</span>
 <span class="tok-c1">;; &quot;Result1: {:n 1}&quot;</span>
 <span class="tok-c1">;; &quot;Result2: {:n 2}&quot;</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_custom_types"><a class="link" href="#_custom_types">4.9. Custom types</a></h3>
+<div class="paragraph">
+<p>Since 0.2.0 version, suricatta comes with support for extending self with custom
+(or vendor specific) types support. It consist in two protocols, one for convert
+user definet types to jooq/jdbc compatible types, and other the backwards conversion.</p>
+</div>
+<div class="listingblock">
+<div class="title">Let see an example for adapt clojure persistent map interface to postgresql json file.</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="clojure"><span class="tok-p">(</span><span class="tok-nf">require</span> <span class="tok-o">&#39;</span><span class="tok-p">[</span><span class="tok-nv">suricatta.proto</span> <span class="tok-ss">:as</span> <span class="tok-nv">proto</span><span class="tok-p">])</span>
+<span class="tok-p">(</span><span class="tok-nf">require</span> <span class="tok-o">&#39;</span><span class="tok-p">[</span><span class="tok-nv">cheshire.core</span> <span class="tok-ss">:as</span> <span class="tok-nv">json</span><span class="tok-p">])</span>
+<span class="tok-p">(</span><span class="tok-nb">import </span><span class="tok-ss">&#39;org.postgresql.util.PGobject</span><span class="tok-p">)</span>
+
+<span class="tok-p">(</span><span class="tok-nf">extend-protocol</span> <span class="tok-nv">proto/IParamType</span>
+  <span class="tok-nv">clojure.lang.IPersistentMap</span>
+  <span class="tok-p">(</span><span class="tok-nf">render</span> <span class="tok-p">[</span><span class="tok-nv">self</span><span class="tok-p">]</span>
+    <span class="tok-p">(</span><span class="tok-nb">str </span><span class="tok-s">&quot;&#39;&quot;</span> <span class="tok-p">(</span><span class="tok-nf">json/generate-string</span> <span class="tok-nv">self</span><span class="tok-p">)</span> <span class="tok-s">&quot;&#39;::json&quot;</span><span class="tok-p">))</span>
+  <span class="tok-p">(</span><span class="tok-nf">bind</span> <span class="tok-p">[</span><span class="tok-nv">self</span> <span class="tok-nv">stmt</span> <span class="tok-nv">index</span><span class="tok-p">]</span>
+    <span class="tok-p">(</span><span class="tok-k">let </span><span class="tok-p">[</span><span class="tok-nv">obj</span> <span class="tok-p">(</span><span class="tok-nb">doto </span><span class="tok-p">(</span><span class="tok-nf">PGobject.</span><span class="tok-p">)</span>
+                <span class="tok-p">(</span><span class="tok-nf">.setType</span> <span class="tok-s">&quot;json&quot;</span><span class="tok-p">)</span>
+                <span class="tok-p">(</span><span class="tok-nf">.setValue</span> <span class="tok-p">(</span><span class="tok-nf">json/generate-string</span> <span class="tok-nv">self</span><span class="tok-p">)))]</span>
+      <span class="tok-p">(</span><span class="tok-nf">.setObject</span> <span class="tok-nv">stmt</span> <span class="tok-nb">index </span><span class="tok-nv">obj</span><span class="tok-p">))))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <strong>render</strong> function responsibility is return a safe string representation of type and is used
+mainly for rendering inline sql. And the <strong>bind</strong> function is responble of bind make a arbitrary
+transformations and bind the transformed value to the prepared statement.</p>
+</div>
+<div class="listingblock">
+<div class="title">Now let see the backward conversion example.</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="clojure"><span class="tok-p">(</span><span class="tok-nf">extend-protocol</span> <span class="tok-nv">proto/ISQLType</span>
+  <span class="tok-nv">PGobject</span>
+  <span class="tok-p">(</span><span class="tok-nf">convert</span> <span class="tok-p">[</span><span class="tok-nv">self</span><span class="tok-p">]</span>
+    <span class="tok-p">(</span><span class="tok-k">let </span><span class="tok-p">[</span><span class="tok-nv">type</span> <span class="tok-p">(</span><span class="tok-nf">.getType</span> <span class="tok-nv">self</span><span class="tok-p">)]</span>
+      <span class="tok-p">(</span><span class="tok-nf">condp</span> <span class="tok-nb">= </span><span class="tok-nv">type</span>
+        <span class="tok-s">&quot;json&quot;</span> <span class="tok-p">(</span><span class="tok-nf">json/parse-string</span> <span class="tok-p">(</span><span class="tok-nf">.getValue</span> <span class="tok-nv">self</span><span class="tok-p">)</span> <span class="tok-nv">true</span><span class="tok-p">)))))</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now having defined the two way conversions, you can use the clojure hash-map for pass
+it as value to the query and it automatically handled with conversions that are
+you previously defined.</p>
+</div>
+<div class="listingblock">
+<div class="title">Insert and query example using postgresql json fields.</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="clojure"><span class="tok-c1">;; Create table</span>
+<span class="tok-p">(</span><span class="tok-nf">sc/execute</span> <span class="tok-nv">*ctx*</span> <span class="tok-s">&quot;create table t1 (k json)&quot;</span><span class="tok-p">)</span>
+
+<span class="tok-c1">;; Insert a json value</span>
+<span class="tok-p">(</span><span class="tok-nf">sc/execute</span> <span class="tok-nv">*ctx*</span> <span class="tok-p">[</span><span class="tok-s">&quot;insert into t1 (k) values (?)&quot;</span> <span class="tok-p">{</span><span class="tok-ss">:foo</span> <span class="tok-mi">1</span><span class="tok-p">}])</span>
+
+<span class="tok-c1">;; Query a table with json value</span>
+<span class="tok-p">(</span><span class="tok-nf">sc/fetch</span> <span class="tok-nv">*ctx*</span> <span class="tok-p">[</span><span class="tok-s">&quot;select * from t1&quot;</span><span class="tok-p">])</span>
+<span class="tok-c1">;; =&gt; [{:k {:foo 1}}]</span></code></pre>
 </div>
 </div>
 </div>
@@ -1736,26 +1793,10 @@ default value for a field in table creation statement.
 </div>
 </div>
 <div class="sect1">
-<h2 id="_advanced_usage"><a class="link" href="#_advanced_usage">6. Advanced usage</a></h2>
+<h2 id="_faq"><a class="link" href="#_faq">6. FAQ</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_extending_with_custom_types"><a class="link" href="#_extending_with_custom_types">6.1. Extending with custom types</a></h3>
-<div class="paragraph">
-<p>Since 0.2.0 version, suricatta comes with extending with custom (or vendor specific)
-types support. It consist in two protocols, one for convert user definet types to jooq/jdbc
-compatible types, and other the backwards conversion.</p>
-</div>
-<div class="paragraph">
-<p>TODO</p>
-</div>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_faq"><a class="link" href="#_faq">7. FAQ</a></h2>
-<div class="sectionbody">
-<div class="sect2">
-<h3 id="_why_i_should_use_suricatta_instead_of_clojure_jdbc_or_java_jdbc"><a class="link" href="#_why_i_should_use_suricatta_instead_of_clojure_jdbc_or_java_jdbc">7.1. Why I should use suricatta instead of clojure.jdbc or java.jdbc?</a></h3>
+<h3 id="_why_i_should_use_suricatta_instead_of_clojure_jdbc_or_java_jdbc"><a class="link" href="#_why_i_should_use_suricatta_instead_of_clojure_jdbc_or_java_jdbc">6.1. Why I should use suricatta instead of clojure.jdbc or java.jdbc?</a></h3>
 <div class="paragraph">
 <p>Unlike any jdbc library, <em>suricatta</em> works in slightly higher level. It hides a lot of
 idiosyncrasies of jdbc under much <strong>simpler, cleaner and less error prone api</strong>, with better
@@ -1763,7 +1804,7 @@ resource management.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_why_an_other_dsl_is_yet_another"><a class="link" href="#_why_an_other_dsl_is_yet_another">7.2. Why an other dsl? Is yet another?</a></h3>
+<h3 id="_why_an_other_dsl_is_yet_another"><a class="link" href="#_why_an_other_dsl_is_yet_another">6.2. Why an other dsl? Is yet another?</a></h3>
 <div class="paragraph">
 <p>In first instance <em>suricatta</em> is not a dsl library, is a sql toolkit, and one part of the
 toolkit is a dsl.</p>
@@ -1775,7 +1816,7 @@ sql constructions.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_that_use_cases_have_suricatta"><a class="link" href="#_that_use_cases_have_suricatta">7.3. That use cases have suricatta?</a></h3>
+<h3 id="_that_use_cases_have_suricatta"><a class="link" href="#_that_use_cases_have_suricatta">6.3. That use cases have suricatta?</a></h3>
 <div class="paragraph">
 <p>The <em>suricatta</em> library is very flexible and it can be used in very different ways:</p>
 </div>
@@ -1798,7 +1839,7 @@ executing queries.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_is_a_korma_clone"><a class="link" href="#_is_a_korma_clone">7.4. Is a korma-clone?</a></h3>
+<h3 id="_is_a_korma_clone"><a class="link" href="#_is_a_korma_clone">6.4. Is a korma-clone?</a></h3>
 <div class="paragraph">
 <p>Not, is not korma clone. Because it works very different, and it has different philosophy.</p>
 </div>
@@ -1808,7 +1849,7 @@ to be a replacement of Korma. It intends be a replacement to raw jdbc access to 
 </div>
 </div>
 <div class="sect2">
-<h3 id="_is_required_buy_jooq_comercial_license"><a class="link" href="#_is_required_buy_jooq_comercial_license">7.5. Is required buy JOOQ comercial license?</a></h3>
+<h3 id="_is_required_buy_jooq_comercial_license"><a class="link" href="#_is_required_buy_jooq_comercial_license">6.5. Is required buy JOOQ comercial license?</a></h3>
 <div class="paragraph">
 <p>Not, <em>suricatta</em> works and tested with opensource (Apache 2.0 licensed) version of JOOQ.</p>
 </div>
@@ -1818,7 +1859,7 @@ to be a replacement of Korma. It intends be a replacement to raw jdbc access to 
 </div>
 </div>
 <div class="sect2">
-<h3 id="_can_i_store_safely_queries_builded_by_dsl_in_a_var_they_are_immutable"><a class="link" href="#_can_i_store_safely_queries_builded_by_dsl_in_a_var_they_are_immutable">7.6. Can I store safely queries builded by DSL in a var, they are immutable?</a></h3>
+<h3 id="_can_i_store_safely_queries_builded_by_dsl_in_a_var_they_are_immutable"><a class="link" href="#_can_i_store_safely_queries_builded_by_dsl_in_a_var_they_are_immutable">6.6. Can I store safely queries builded by DSL in a var, they are immutable?</a></h3>
 <div class="paragraph">
 <p>Yes. Unlike JOOQ DSL interface that has mutable api, <em>suricatta</em> exposes immutable
 api for building queries.</p>
@@ -1830,10 +1871,10 @@ api for building queries.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_how_to_contribute"><a class="link" href="#_how_to_contribute">8. How to Contribute?</a></h2>
+<h2 id="_how_to_contribute"><a class="link" href="#_how_to_contribute">7. How to Contribute?</a></h2>
 <div class="sectionbody">
 <div class="sect2">
-<h3 id="_philosophy"><a class="link" href="#_philosophy">8.1. Philosophy</a></h3>
+<h3 id="_philosophy"><a class="link" href="#_philosophy">7.1. Philosophy</a></h3>
 <div class="paragraph">
 <p>Five most important rules:</p>
 </div>
@@ -1861,7 +1902,7 @@ api for building queries.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_procedure"><a class="link" href="#_procedure">8.2. Procedure</a></h3>
+<h3 id="_procedure"><a class="link" href="#_procedure">7.2. Procedure</a></h3>
 <div class="paragraph">
 <p><strong>suricatta</strong> unlike Clojure and other Clojure contrib libs, does not have many
 restrictions for contributions. Just follow the following steps depending on the
@@ -1898,7 +1939,7 @@ situation:</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_license"><a class="link" href="#_license">8.3. License</a></h3>
+<h3 id="_license"><a class="link" href="#_license">7.3. License</a></h3>
 <div class="paragraph">
 <p><em>suricatta</em> is licensed under BSD (2-Clause) license:</p>
 </div>
@@ -1936,7 +1977,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2015-01-17 13:21:13 CET
+Last updated 2015-01-17 14:02:27 CET
 </div>
 </div>
 </body>
